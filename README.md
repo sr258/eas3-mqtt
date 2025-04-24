@@ -180,7 +180,7 @@ mode: single
 
 Die EAS 3 sendet Broadcast-Pakete, deren Bedeutung aktuell unbekannt ist, und
 die deshalb ignoriert werden. Das EAS 3 scheint von der BRUNNEREAS3-App per
-Remote Procedure Call aufgerufen zu werden. Was hier genau passier ist
+Remote Procedure Call aufgerufen zu werden. Was hier genau passiert ist
 unbekannt, weshalb die Features der App nicht verwendet werden können.
 
 ## Quellen / Anerkennung
