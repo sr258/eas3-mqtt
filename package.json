@@ -1,0 +1,21 @@
+{
+  "name": "eas3-mqtt",
+  "version": "1.0.0",
+  "main": "src/eas3.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/eas3.js",
+    "debug": "DEBUG=eas3-mqtt-gateway npm start"
+  },
+  "author": "Sebastian Rettig",
+  "license": "MIT",
+  "description": "EAS 3 - MQTT Gateway",
+  "dependencies": {
+    "debug": "^4.4.0",
+    "dotenv": "^16.5.0",
+    "mqtt": "^5.11.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
