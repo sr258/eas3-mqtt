@@ -11,9 +11,9 @@
   "license": "MIT",
   "description": "EAS 3 - MQTT Gateway",
   "dependencies": {
-    "debug": "^4.4.0",
-    "dotenv": "^16.5.0",
-    "mqtt": "^5.11.1"
+    "debug": "^4.4.3",
+    "dotenv": "^17.2.3",
+    "mqtt": "^5.14.1"
   },
   "engines": {
     "node": ">=20.0.0"
