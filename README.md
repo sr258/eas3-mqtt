@@ -93,12 +93,16 @@ Das Gateway kann über folgende Umgebungsvariablen konfiguriert werden:
 | Umgebungsvariable | Beschreibung | Verwendung | Beispiel(e) | Standardwert wenn leer | 
 | -  | - | - | - | - |
 | MQTT_HOST | Hostname des MQTT-Brokers. Ohne diesen Wert beendet sich das Gateway mit einer Fehlermeldung. | verpflichtend | 192.168.188.200<br>localhost | |
-| MQTT_PORT | Port des MQTT-Brokers | optional | 1883 | 1883 |
+| MQTT_PORT | Port des MQTT-Brokers | optional | 1883 | 1883 (8883 mit `MQTT_TLS=true`) |
 | MQTT_USERNAME | Benutzername eines Nutzers auf dem MQTT-Broker. Nichts angeben, um ohne Authentisierung zu arbeiten. | optional | myusername | |
 | MQTT_PASSWORD | Passwort eines Nutzers auf dem MQTT-Broker. Nichts angeben, um ohne Authentisierung zu arbeiten. | optional | mypassword | | 
+| MQTT_TLS | Verschlüsselt die Verbindung zum MQTT-Broker per TLS (`mqtts`). Ohne TLS werden Benutzername und Passwort unverschlüsselt übertragen. | optional | true<br>false | false |
+| MQTT_CA_FILE | Pfad zu einer CA-Zertifikatsdatei (PEM), mit der das Zertifikat des Brokers geprüft wird. Nur nötig, wenn das Zertifikat nicht von einer öffentlich vertrauten CA stammt. | optional | /etc/ssl/my-ca.pem | |
 | MQTT_AUTODISCOVERY_FREQUENCY | Wie häufig das Gateway Autodiscovery-Informationen an den MQTT-Broker verschickt. Das Gateway schickt (pro EAS 3-Gerät) bei jedem X-ten Status-Paket die Autodiscovery-Nachricht. Normalerweise verschickt die EAS 3 alle fünf Sekunden ein Status-Paket, d.h. der Standardwert 10 entspricht etwa 50 Sekunden. Ungültige Werte (kleiner als 1 oder keine Zahl) werden durch den Standardwert ersetzt. | optional | 10 | 10 |
 | MQTT_AUTODISCOVERY_DISABLED | Deaktiviert das Senden von Autodiscovery-Informationen. Sinnvoll wenn ein anderes System als Home Assistant verwendet wird. | optional | true<br>false | |
 | EAS3_BROADCAST_PORT | Der UDP-Port, auf den EAS3-Broadcasts gesendet werden. | optional | 45454 | 45454 |
+| EAS3_BIND_ADDRESS | Lokale IP-Adresse, auf der das Gateway horcht. Leer lassen, um auf allen Netzwerk-Schnittstellen zu horchen. | optional | 192.168.188.10 | |
+| EAS3_ALLOWED_SOURCE_IPS | Kommagetrennte Liste der IP-Adressen der EAS 3-Geräte. Wenn gesetzt, werden Broadcasts aller anderen Absender ignoriert. | optional | 192.168.188.50<br>192.168.188.50,192.168.188.51 | |
 | EAS3_MQTT_DEVICE_PREFIX | Präfix für das Gerät im MQTT-Broker | optional | prefix_ | eas3_ |
 | EAS3_UDP_LOG_FILE | Pfad einer Datei, in die jedes empfangene UDP-Paket (auch unbekannte) als JSON Lines angehängt wird: Zeitstempel, Absender, Länge, Text und Hex-Payload. Für Reverse Engineering, siehe [UDP-Pakete mitschneiden](#udp-pakete-mitschneiden). | optional | /var/log/eas3-udp.jsonl | deaktiviert |
 | DEBUG | Konfiguriert die Debug-Ausgabe | optional | eas3-mqtt-gateway<br>* | |
@@ -118,6 +122,27 @@ Wenn die Umgebungsvariablen per CLI übergeben werden sollen (Linux):
 
 - Das Gateway per `MQTT_HOST=localhost MQTT_USERNAME=myusername npm start`
   starten.
+
+## Sicherheit
+
+Die EAS 3 verschickt ihre Broadcasts unverschlüsselt und ohne Authentisierung.
+Jedes Gerät im selben Netzwerk kann deshalb Pakete verschicken, die wie die
+einer EAS 3 aussehen, und so falsche Werte in den MQTT-Broker einschleusen.
+Automationen, die auf diesen Werten beruhen, sollten das berücksichtigen.
+
+Folgende Maßnahmen verringern das Risiko:
+
+- `EAS3_ALLOWED_SOURCE_IPS` auf die IP-Adresse(n) der EAS 3 setzen (und der EAS
+  3 im Router eine feste IP-Adresse zuweisen). Da Absenderadressen bei UDP
+  gefälscht werden können, ist dies kein vollständiger Schutz.
+- `EAS3_BIND_ADDRESS` setzen, wenn die Maschine mehrere Netzwerk-Schnittstellen
+  hat und das Gateway nur auf einer erreichbar sein soll.
+- `MQTT_TLS=true` setzen, wenn der MQTT-Broker nicht auf derselben Maschine
+  läuft.
+
+Das Gateway verwirft außerdem Pakete, die größer als 1024 Bytes sind, eine
+EAS-Nummer über 99 haben oder eine Heizraum-Temperatur außerhalb von -50 bis
+1500 °C melden.
 
 ## Debugging
 
