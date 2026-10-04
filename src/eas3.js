@@ -1,6 +1,7 @@
 import 'dotenv/config';
 
 import { createSocket } from 'dgram'; // for UDP
+import { readFileSync } from 'fs';
 import { connect } from 'mqtt';
 import debug from 'debug';
 
@@ -24,10 +25,32 @@ function parseAutodiscoveryFrequency(value) {
     return frequency;
 }
 
+// Status broadcasts of the EAS 3 are far smaller than this. Larger packets are
+// dropped before they are parsed or logged.
+const MAX_BROADCAST_LENGTH = 1024;
+
+function parseAllowedSourceIps(value) {
+    if (!value) {
+        return undefined;
+    }
+    const ips = value.split(",").map((ip) => ip.trim()).filter((ip) => ip);
+    return ips.length > 0 ? new Set(ips) : undefined;
+}
+
+// Removes control characters (e.g. terminal escape sequences) from untrusted
+// data before it is written to the log.
+const sanitizeForLog = (text) => text.replace(/[\x00-\x1f\x7f-\x9f]/g, "?");
+
+const mqttTls = process.env.MQTT_TLS == "true";
+
 const config = {
     eas3BroadcastPort: process.env.EAS3_BROADCAST_PORT ? Number.parseInt(process.env.EAS3_BROADCAST_PORT) : 45454,
+    eas3BindAddress: process.env.EAS3_BIND_ADDRESS || undefined,
+    eas3AllowedSourceIps: parseAllowedSourceIps(process.env.EAS3_ALLOWED_SOURCE_IPS),
     mqttHost: process.env.MQTT_HOST,
-    mqttPort: process.env.MQTT_PORT ? Number.parseInt(process.env.MQTT_PORT) : 1883,
+    mqttPort: process.env.MQTT_PORT ? Number.parseInt(process.env.MQTT_PORT) : (mqttTls ? 8883 : 1883),
+    mqttTls,
+    mqttCaFile: process.env.MQTT_CA_FILE || undefined,
     mqttUsername: process.env.MQTT_USERNAME || undefined,
     mqttPassword: process.env.MQTT_PASSWORD || undefined,
     mqttAutodiscoveryFrequency: parseAutodiscoveryFrequency(process.env.MQTT_AUTODISCOVERY_FREQUENCY),
@@ -40,7 +63,13 @@ if (!config.mqttHost) {
     process.exit(1);
 }
 
+if (!config.mqttTls && config.mqttPassword && !["localhost", "127.0.0.1", "::1"].includes(config.mqttHost)) {
+    console.warn("MQTT_TLS is not enabled: the MQTT credentials are sent unencrypted.");
+}
+
 const mqttClient = connect({
+    protocol: config.mqttTls ? "mqtts" : "mqtt",
+    ca: config.mqttTls && config.mqttCaFile ? readFileSync(config.mqttCaFile) : undefined,
     host: config.mqttHost,
     port: config.mqttPort,
     username: config.mqttUsername,
@@ -73,12 +102,20 @@ server.on("error", (error) => {
 });
 
 // Port Nummer der Brunner EAS3 Abbrand Steuerung
-server.bind(config.eas3BroadcastPort);
+server.bind(config.eas3BroadcastPort, config.eas3BindAddress);
 
 // When udp server receives message.
-server.on("message", function (message) {
+server.on("message", function (message, remoteInfo) {
+    if (config.eas3AllowedSourceIps && !config.eas3AllowedSourceIps.has(remoteInfo.address)) {
+        logger("Ignored UDP packet from source that is not allowed", remoteInfo.address);
+        return;
+    }
+    if (message.length > MAX_BROADCAST_LENGTH) {
+        logger("Ignored oversized UDP packet", remoteInfo.address, message.length);
+        return;
+    }
     const messageString = message.toString();
-    logger("Received UDP broadcast", messageString);
+    logger("Received UDP broadcast", remoteInfo.address, sanitizeForLog(messageString));
     if (mqttClient.connected) {
         processMessage(messageString, mqttClient, config);
     } else {

@@ -4,7 +4,14 @@ const logger = debug('eas3-mqtt-gateway');
 
 import { generateAutoDiscoveryConfiguration, generateDeviceId } from './auto-disocvery.js'
 
-const broadcastRegex = /<bdle eas="(\d+)".+stat="(\d+)">(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\-?\d+);(\d+);(\d+);(\-?\d+);(\d+);<\/bdle>/;
+// The number of digits is limited, so that forged broadcasts can neither
+// announce an arbitrary amount of devices (EAS number) nor publish absurd values.
+const broadcastRegex = /<bdle eas="(\d{1,2})"[^>]+stat="(\d{1,10})">(\d{1,10});(\d{1,10});(\d{1,10});(\d{1,10});(\d{1,10});(\d{1,10});(\d{1,10});(\d{1,10});(\d{1,10});(\-?\d{1,10});(\d{1,10});(\d{1,10});(\-?\d{1,10});(\d{1,10});<\/bdle>/;
+
+// Plausible range of the Heizraum temperature in °C. Broadcasts with values
+// outside of it are ignored.
+const MIN_HEIZRAUM_TEMPERATUR = -50;
+const MAX_HEIZRAUM_TEMPERATUR = 1500;
 
 // We only send auto discovery messages every 10th message (or configuration
 // value config.mqttAutodiscoveryFrequency). The messages are counted per EAS 3
@@ -31,6 +38,11 @@ export const processMessage = (message, mqttClient, config) => {
         };
 
         logger('Parsed EAS 3 data', fullData);
+
+        if (fullData.heizraumTemperatur < MIN_HEIZRAUM_TEMPERATUR || fullData.heizraumTemperatur > MAX_HEIZRAUM_TEMPERATUR) {
+            logger('Ignored broadcast with implausible Heizraum temperature');
+            return;
+        }
 
         let abbrandStatusText;
         switch (fullData.abbrandStatus) {
