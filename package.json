@@ -13,7 +13,7 @@
   "description": "EAS 3 - MQTT Gateway",
   "dependencies": {
     "debug": "^4.4.3",
-    "dotenv": "^17.2.3",
+    "dotenv": "^18.0.5",
     "mqtt": "^5.14.1"
   },
   "engines": {
