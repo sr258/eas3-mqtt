@@ -25,7 +25,7 @@ Assistant die Daten besser visualisieren kann.
 wurde. Wenn nur ein Gerät vorhanden ist, ist dies 0. Bei mehreren Geräten werden
 dann weitere Nummern verwenden.
 
-Das Gateway ist undirektional und nur lesend, weshalb das Gateway keinesfalls
+Das Gateway ist unidirektional und nur lesend, weshalb das Gateway keinesfalls
 die Steuerung beeinflussen sollte, d.h.:
 
 - Es werden nur Daten vom EAS 3 ausgelesen.
@@ -35,7 +35,8 @@ Unterstützte Informationen:
 
 - Heizraum-Temperatur (in °C)
 - Abbrand-Status (Aus, Tür offen, Abbrand Start, Abbrand Stufe 1, Abbrand Stufe
-  2, Abbrand Stufe 3, Abbrand Stufe 4, Abbrand Ende, Fehler)
+  2, Abbrand Stufe 3, Abbrand Stufe 4, Abbrand Ende, Fehler; bei einem dem
+  Gateway nicht bekannten Statuswert: Unbekannt)
 - Verlängerter Abbrand (an / aus)
 - Öko-Modus (an / aus)
 - Drosselklappen-Betrieb (an / aus)
@@ -62,7 +63,7 @@ worden sein und in der App müssen Daten angezeigt werden.
 2. Das [Gateway konfigurieren](#konfiguration).
 3. Das Gateway mit `npm start` starten.
 
-### Als Daemon mit ps2 ausführen
+### Als Daemon mit pm2 ausführen
 
 Mit der oben angeführten Methode, wird das Gateway nicht erneut gestartet, wenn
 es durch einen Absturz oder Reboot der Maschine beendet wurde. Um dies
@@ -91,14 +92,14 @@ Das Gateway kann über folgende Umgebungsvariablen konfiguriert werden:
 
 | Umgebungsvariable | Beschreibung | Verwendung | Beispiel(e) | Standardwert wenn leer | 
 | -  | - | - | - | - |
-| MQTT_HOST | Hostname des MQTT-Brokers | verpflichtend | 192.168.188.200<br>localhost | |
+| MQTT_HOST | Hostname des MQTT-Brokers. Ohne diesen Wert beendet sich das Gateway mit einer Fehlermeldung. | verpflichtend | 192.168.188.200<br>localhost | |
 | MQTT_PORT | Port des MQTT-Brokers | optional | 1883 | 1883 |
 | MQTT_USERNAME | Benutzername eines Nutzers auf dem MQTT-Broker. Nichts angeben, um ohne Authentisierung zu arbeiten. | optional | myusername | |
 | MQTT_PASSWORD | Passwort eines Nutzers auf dem MQTT-Broker. Nichts angeben, um ohne Authentisierung zu arbeiten. | optional | mypassword | | 
-| MQTT_AUTODISCOVERY_FREQUENCY | Wie häufig das Gateway Autodiscovery-Informationen an den MQTT-Broker verschickt. Das Gateway schickt bei jedem X-te UDP-Paket die Auto-Discovery-Nachricht. Normalerweise verschickt die EAS 3 jede Sekunde ein Paket, d.h. der hier eingetragene Wert entspricht Sekunden. | optional | 10 | 10 |
+| MQTT_AUTODISCOVERY_FREQUENCY | Wie häufig das Gateway Autodiscovery-Informationen an den MQTT-Broker verschickt. Das Gateway schickt (pro EAS 3-Gerät) bei jedem X-ten Status-Paket die Autodiscovery-Nachricht. Normalerweise verschickt die EAS 3 alle fünf Sekunden ein Status-Paket, d.h. der Standardwert 10 entspricht etwa 50 Sekunden. Ungültige Werte (kleiner als 1 oder keine Zahl) werden durch den Standardwert ersetzt. | optional | 10 | 10 |
 | MQTT_AUTODISCOVERY_DISABLED | Deaktiviert das Senden von Autodiscovery-Informationen. Sinnvoll wenn ein anderes System als Home Assistant verwendet wird. | optional | true<br>false | |
 | EAS3_BROADCAST_PORT | Der UDP-Port, auf den EAS3-Broadcasts gesendet werden. | optional | 45454 | 45454 |
-| EAS3_MQTT_DEVICE_PREFIX | Präfix für das Gerät im MQTT-Broker | optional | prefix_ | eas3_
+| EAS3_MQTT_DEVICE_PREFIX | Präfix für das Gerät im MQTT-Broker | optional | prefix_ | eas3_ |
 | DEBUG | Konfiguriert die Debug-Ausgabe | optional | eas3-mqtt-gateway<br>* | |
 
 Die Umgebungsvariablen können in einer `.env`-Datei liegen oder normal als
@@ -108,7 +109,7 @@ Umgebungsvariablen übergeben werden. Es gibt eine Beispiel-`.env`-Datei unter
 Wenn die `.env`-Datei verwendet werden soll:
 
 1. `example.env` in `.env` kopieren.
-2. Die Konfigurationswerte in `.env` enstprechend den eigenen Bedingungen
+2. Die Konfigurationswerte in `.env` entsprechend den eigenen Bedingungen
    anpassen.
 3. Das Gateway ohne weitere Parameter starten.
 
@@ -122,14 +123,14 @@ Wenn die Umgebungsvariablen per CLI übergeben werden sollen (Linux):
 Das Gateway verwendet das NPM-Package
 [`debug`](https://www.npmjs.com/package/debug), um Debug-Informationen
 auszugeben. Diese können angezeigt werden, indem die Anwendung mit der
-Umgebungsvariable `DEBUG=eas3-mqtt-gateway` gestart wird (Linux):
+Umgebungsvariable `DEBUG=eas3-mqtt-gateway` gestartet wird (Linux):
 
 ```sh
 DEBUG=eas3-mqtt-gateway npm start
 ```
 
-Dann wird die Debug-Ausgabe des Gateways selber angezeigt. Es könnena auch die
-Ausgaben anderer Package angezeigt werden. Dafür `DEBUG=*` setzen.
+Dann wird die Debug-Ausgabe des Gateways selber angezeigt. Es können auch die
+Ausgaben anderer Packages angezeigt werden. Dafür `DEBUG=*` setzen.
 
 ## Beispiel-Automation in Home Assistant
 
@@ -145,7 +146,7 @@ description: ""
 triggers:
   - trigger: numeric_state
     entity_id:
-      - sensor.eas_3_heizraum_temperatur
+      - sensor.kachelofen_eas_3_heizraum_temperatur
     for:
       hours: 0
       minutes: 0
