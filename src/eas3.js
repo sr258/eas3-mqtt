@@ -6,6 +6,7 @@ import { connect } from 'mqtt';
 import debug from 'debug';
 
 import { processMessage } from './message-processor.js';
+import { createUdpLogger } from './udp-logger.js';
 
 const logger = debug('eas3-mqtt-gateway');
 
@@ -55,7 +56,8 @@ const config = {
     mqttPassword: process.env.MQTT_PASSWORD || undefined,
     mqttAutodiscoveryFrequency: parseAutodiscoveryFrequency(process.env.MQTT_AUTODISCOVERY_FREQUENCY),
     mqttAutodiscoveryDisabled: process.env.MQTT_AUTODISCOVERY_DISABLED == "true",
-    devicePrefix: process.env.EAS3_MQTT_DEVICE_PREFIX || "eas3_"
+    devicePrefix: process.env.EAS3_MQTT_DEVICE_PREFIX || "eas3_",
+    udpLogFile: process.env.EAS3_UDP_LOG_FILE || undefined
 }
 
 if (!config.mqttHost) {
@@ -65,6 +67,11 @@ if (!config.mqttHost) {
 
 if (!config.mqttTls && config.mqttPassword && !["localhost", "127.0.0.1", "::1"].includes(config.mqttHost)) {
     console.warn("MQTT_TLS is not enabled: the MQTT credentials are sent unencrypted.");
+}
+
+const udpLogger = createUdpLogger(config.udpLogFile);
+if (udpLogger) {
+    console.log(`Logging all received UDP datagrams to ${config.udpLogFile}`);
 }
 
 const mqttClient = connect({
@@ -110,6 +117,9 @@ server.on("message", function (message, remoteInfo) {
         logger("Ignored UDP packet from source that is not allowed", remoteInfo.address);
         return;
     }
+    // Log the raw datagram independent of MQTT and of whether we understand it,
+    // but only from allowed sources.
+    udpLogger?.log(message, remoteInfo);
     if (message.length > MAX_BROADCAST_LENGTH) {
         logger("Ignored oversized UDP packet", remoteInfo.address, message.length);
         return;
