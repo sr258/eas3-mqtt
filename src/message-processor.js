@@ -4,11 +4,12 @@ const logger = debug('eas3-mqtt-gateway');
 
 import { generateAutoDiscoveryConfiguration, generateDeviceId } from './auto-disocvery.js'
 
-const broadcastRegex = /<bdle eas="(\d+)".+stat="(\d+)">(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\-?\d+);(\d+);(\d+);(\d+);(\d+);<\/bdle>/;
+const broadcastRegex = /<bdle eas="(\d+)".+stat="(\d+)">(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\d+);(\-?\d+);(\d+);(\d+);(\-?\d+);(\d+);<\/bdle>/;
 
 // We only send auto discovery messages every 10th message (or configuration
-// value config.mqttAutodiscoveryFrequency)
-let discoveryCounter = 0;
+// value config.mqttAutodiscoveryFrequency). The messages are counted per EAS 3
+// device, so that every device gets its auto discovery messages.
+const discoveryCounters = new Map();
 
 export const processMessage = (message, mqttClient, config) => {
     const resultArray = broadcastRegex.exec(message);
@@ -60,11 +61,14 @@ export const processMessage = (message, mqttClient, config) => {
             case 8:
                 abbrandStatusText = "Fehler";
                 break;
+            default:
+                abbrandStatusText = "Unbekannt";
+                break;
         }
 
         if (!config.mqttAutodiscoveryDisabled) {
+            const discoveryCounter = discoveryCounters.get(fullData.easNumber) ?? 0;
             if ((discoveryCounter % config.mqttAutodiscoveryFrequency) == 0) {
-                discoveryCounter = 0;
                 const adc = generateAutoDiscoveryConfiguration(fullData.easNumber, fullData.heizeinsatz, config.devicePrefix);
                 logger('Publishing auto-discovery information');
                 logger(adc);
@@ -72,7 +76,7 @@ export const processMessage = (message, mqttClient, config) => {
                     mqttClient.publish(topic, JSON.stringify(adc[topic]));
                 }
             }
-            discoveryCounter++;
+            discoveryCounters.set(fullData.easNumber, (discoveryCounter % config.mqttAutodiscoveryFrequency) + 1);
         }
 
         const mqttTopic = `stove/${generateDeviceId(fullData.easNumber, config.devicePrefix)}/sensors`;
@@ -81,7 +85,7 @@ export const processMessage = (message, mqttClient, config) => {
                 heizraumTemperatur: fullData.heizraumTemperatur,
                 verlaengerterAbbrand: fullData.verlaengerterAbbrand ? "ON" : "OFF",
                 oeko: fullData.oeko ? "ON" : "OFF",
-                drosselklappenBetrieb: fullData.verlaengerterAbbrand ? "ON" : "OFF",
+                drosselklappenBetrieb: fullData.drosselklappenBetrieb ? "ON" : "OFF",
                 nachlegeHinweis: fullData.nachlegeHinweis,
                 abbrandStatus: abbrandStatusText
             }

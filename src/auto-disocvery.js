@@ -19,7 +19,7 @@ export const generateAutoDiscoveryConfiguration = (easNumber, heizeinsatzNummer,
     {
         "device_class": "temperature",
         "state_class": "measurement",
-        "device": generateDevice(easNumber, heizeinsatzNummer),
+        "device": generateDevice(easNumber, heizeinsatzNummer, devicePrefix),
         "name": "Heizraum-Temperatur",
         "state_topic": `stove/${deviceId}/sensors`,
         "unit_of_measurement": "°C",
@@ -30,7 +30,7 @@ export const generateAutoDiscoveryConfiguration = (easNumber, heizeinsatzNummer,
         `homeassistant/binary_sensor/stove_${deviceId}_verlaengerterAbbrand/config`] =
     {
         "name": "verlängerter Abbrand",
-        "device": generateDevice(easNumber, heizeinsatzNummer),
+        "device": generateDevice(easNumber, heizeinsatzNummer, devicePrefix),
         "state_topic": `stove/${deviceId}/sensors`,
         "unique_id": `stove_${deviceId}_verlaengerterAbbrand`,
         "value_template": "{{ value_json.verlaengerterAbbrand}}"
@@ -39,7 +39,7 @@ export const generateAutoDiscoveryConfiguration = (easNumber, heizeinsatzNummer,
         `homeassistant/binary_sensor/stove_${deviceId}_oeko/config`] =
     {
         "name": "Öko-Modus",
-        "device": generateDevice(easNumber, heizeinsatzNummer),
+        "device": generateDevice(easNumber, heizeinsatzNummer, devicePrefix),
         "state_topic": `stove/${deviceId}/sensors`,
         "unique_id": `stove_${deviceId}_oeko`,
         "value_template": "{{ value_json.oeko}}"
@@ -48,7 +48,7 @@ export const generateAutoDiscoveryConfiguration = (easNumber, heizeinsatzNummer,
         `homeassistant/binary_sensor/stove_${deviceId}_drosselklappenBetrieb/config`] =
     {
         "name": "Drosselklappen-Betrieb",
-        "device": generateDevice(easNumber, heizeinsatzNummer),
+        "device": generateDevice(easNumber, heizeinsatzNummer, devicePrefix),
         "state_topic": `stove/${deviceId}/sensors`,
         "unique_id": `stove_${deviceId}_drosselklappenBetrieb`,
         "value_template": "{{ value_json.drosselklappenBetrieb}}"
@@ -57,7 +57,7 @@ export const generateAutoDiscoveryConfiguration = (easNumber, heizeinsatzNummer,
         `homeassistant/sensor/stove_${deviceId}_nachlegeHinweis/config`] =
     {
         "name": "Nachlege-Hinweis",
-        "device": generateDevice(easNumber, heizeinsatzNummer),
+        "device": generateDevice(easNumber, heizeinsatzNummer, devicePrefix),
         "state_class": "measurement",
         "state_topic": `stove/${deviceId}/sensors`,
         "unique_id": `stove_${deviceId}_nachlegeHinweis`,
@@ -67,7 +67,7 @@ export const generateAutoDiscoveryConfiguration = (easNumber, heizeinsatzNummer,
         `homeassistant/sensor/stove_${deviceId}_abbrandStatus/config`] =
     {
         "device_class": "enum",
-        "device": generateDevice(easNumber, heizeinsatzNummer),
+        "device": generateDevice(easNumber, heizeinsatzNummer, devicePrefix),
         "name": "Abbrand-Status",
         "state_topic": `stove/${deviceId}/sensors`,
         "unique_id": `stove_${deviceId}_abbrandStatus`,
@@ -80,7 +80,8 @@ export const generateAutoDiscoveryConfiguration = (easNumber, heizeinsatzNummer,
             "Abbrand Stufe 4",
             "Abbrand Ende",
             "Aus",
-            "Fehler"
+            "Fehler",
+            "Unbekannt"
         ],
         "value_template": "{{ value_json.abbrandStatus}}"
     };
