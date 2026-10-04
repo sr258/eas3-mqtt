@@ -5,6 +5,7 @@ import { connect } from 'mqtt';
 import debug from 'debug';
 
 import { processMessage } from './message-processor.js';
+import { createUdpLogger } from './udp-logger.js';
 
 const logger = debug('eas3-mqtt-gateway');
 
@@ -32,12 +33,18 @@ const config = {
     mqttPassword: process.env.MQTT_PASSWORD || undefined,
     mqttAutodiscoveryFrequency: parseAutodiscoveryFrequency(process.env.MQTT_AUTODISCOVERY_FREQUENCY),
     mqttAutodiscoveryDisabled: process.env.MQTT_AUTODISCOVERY_DISABLED == "true",
-    devicePrefix: process.env.EAS3_MQTT_DEVICE_PREFIX || "eas3_"
+    devicePrefix: process.env.EAS3_MQTT_DEVICE_PREFIX || "eas3_",
+    udpLogFile: process.env.EAS3_UDP_LOG_FILE || undefined
 }
 
 if (!config.mqttHost) {
     console.error("MQTT_HOST is not set. Please configure the hostname of the MQTT broker.");
     process.exit(1);
+}
+
+const udpLogger = createUdpLogger(config.udpLogFile);
+if (udpLogger) {
+    console.log(`Logging all received UDP datagrams to ${config.udpLogFile}`);
 }
 
 const mqttClient = connect({
@@ -76,7 +83,9 @@ server.on("error", (error) => {
 server.bind(config.eas3BroadcastPort);
 
 // When udp server receives message.
-server.on("message", function (message) {
+server.on("message", function (message, remoteInfo) {
+    // Log the raw datagram first, independent of MQTT and of whether we understand it.
+    udpLogger?.log(message, remoteInfo);
     const messageString = message.toString();
     logger("Received UDP broadcast", messageString);
     if (mqttClient.connected) {

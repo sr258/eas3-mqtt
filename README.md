@@ -100,6 +100,7 @@ Das Gateway kann über folgende Umgebungsvariablen konfiguriert werden:
 | MQTT_AUTODISCOVERY_DISABLED | Deaktiviert das Senden von Autodiscovery-Informationen. Sinnvoll wenn ein anderes System als Home Assistant verwendet wird. | optional | true<br>false | |
 | EAS3_BROADCAST_PORT | Der UDP-Port, auf den EAS3-Broadcasts gesendet werden. | optional | 45454 | 45454 |
 | EAS3_MQTT_DEVICE_PREFIX | Präfix für das Gerät im MQTT-Broker | optional | prefix_ | eas3_ |
+| EAS3_UDP_LOG_FILE | Pfad einer Datei, in die jedes empfangene UDP-Paket (auch unbekannte) als JSON Lines angehängt wird: Zeitstempel, Absender, Länge, Text und Hex-Payload. Für Reverse Engineering, siehe [UDP-Pakete mitschneiden](#udp-pakete-mitschneiden). | optional | /var/log/eas3-udp.jsonl | deaktiviert |
 | DEBUG | Konfiguriert die Debug-Ausgabe | optional | eas3-mqtt-gateway<br>* | |
 
 Die Umgebungsvariablen können in einer `.env`-Datei liegen oder normal als
@@ -131,6 +132,24 @@ DEBUG=eas3-mqtt-gateway npm start
 
 Dann wird die Debug-Ausgabe des Gateways selber angezeigt. Es können auch die
 Ausgaben anderer Packages angezeigt werden. Dafür `DEBUG=*` setzen.
+
+## UDP-Pakete mitschneiden
+
+Für das Reverse Engineering kann das Gateway alle empfangenen UDP-Pakete
+unverändert mitschneiden, auch solche, die es nicht versteht. Dazu
+`EAS3_UDP_LOG_FILE` auf einen Dateipfad setzen. Pro Paket wird eine Zeile JSON
+angehängt (Zeitstempel, Absender, Länge, `text` als Latin-1 und `hex`). Die
+Datei wird nicht rotiert und wächst unbegrenzt.
+
+Beispiele zur Auswertung mit [`jq`](https://jqlang.org/):
+
+```sh
+# Alle Pakete, die keine bekannten Status-Pakete sind
+jq -c 'select(.text | startswith("<bdle") | not)' eas3-udp.jsonl
+
+# Häufigkeit der Pakete nach Anfang des Textes
+jq -r '.text[:12]' eas3-udp.jsonl | sort | uniq -c | sort -rn
+```
 
 ## Beispiel-Automation in Home Assistant
 
