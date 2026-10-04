@@ -18,6 +18,7 @@ export const generateAutoDiscoveryConfiguration = (easNumber, heizeinsatzNummer,
         `homeassistant/sensor/stove_${deviceId}_heizraumTemperatur/config`] =
     {
         "device_class": "temperature",
+        "state_class": "measurement",
         "device": generateDevice(easNumber, heizeinsatzNummer),
         "name": "Heizraum-Temperatur",
         "state_topic": `stove/${deviceId}/sensors`,
@@ -53,13 +54,11 @@ export const generateAutoDiscoveryConfiguration = (easNumber, heizeinsatzNummer,
         "value_template": "{{ value_json.drosselklappenBetrieb}}"
     };
     autoDiscoveryConfigurations[
-        `homeassistant/number/stove_${deviceId}_nachlegeHinweis/config`] =
+        `homeassistant/sensor/stove_${deviceId}_nachlegeHinweis/config`] =
     {
         "name": "Nachlege-Hinweis",
         "device": generateDevice(easNumber, heizeinsatzNummer),
-        "min": 0,
-        "max": 4,
-        "step": 1,
+        "state_class": "measurement",
         "state_topic": `stove/${deviceId}/sensors`,
         "unique_id": `stove_${deviceId}_nachlegeHinweis`,
         "value_template": "{{ value_json.nachlegeHinweis}}"
