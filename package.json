@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node src/eas3.js",
-    "debug": "DEBUG=eas3-mqtt-gateway npm start"
+    "debug": "DEBUG=eas3-mqtt-gateway npm start",
+    "check": "for f in src/*.js; do node --check \"$f\" || exit 1; done"
   },
   "author": "Sebastian Rettig",
   "license": "MIT",
