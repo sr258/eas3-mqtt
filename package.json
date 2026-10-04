@@ -14,7 +14,7 @@
   "dependencies": {
     "debug": "^4.4.3",
     "dotenv": "^17.2.3",
-    "mqtt": "^5.14.1"
+    "mqtt": "^5.16.0"
   },
   "engines": {
     "node": ">=20.0.0"
